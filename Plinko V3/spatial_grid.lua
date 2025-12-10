@@ -3,7 +3,7 @@
 ----------------------------------------
 
 SpatialGrid = {
-    cellSize = 50,      
+    cellSize = 0,      
     cells = {},       
     width = 0,
     height = 0

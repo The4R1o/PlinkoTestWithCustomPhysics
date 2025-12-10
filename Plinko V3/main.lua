@@ -5,20 +5,23 @@ require("world")
 
 local iterationCount = 32
 
-function love.load( )
+function love.load()
 	
 	-- Creating the pegs layout --
 	local startX = -10
 	local startY = 40
-	local spreadSize = 30
+	local spreadSize = 40
+	local pegRadius = 10
+	local numPegsX = 16
+	local numPegsY = 9
 
-	for i = 1, 18 do
-		for j = 1, 10 do
-			if i%2==0 then
-				newBody = Body:CreateCircle(4, Vector2D.new(startX+(spreadSize * j),startY + (spreadSize * i)), 2, 0.6, true)
+	for i = 1, numPegsX do
+		for j = 1, numPegsY do
+			if i % 2 == 0 then
+				newBody = Body:CreateCircle(pegRadius, Vector2D.new(startX+(spreadSize * j),startY + (spreadSize * i)), 1.8, 0.55, true)
 				World.AddBody(newBody)	
 			else
-				newBody = Body:CreateCircle(4, Vector2D.new(startX+(spreadSize * j + (spreadSize/2) ),startY + (spreadSize * i)), 2, 0.6, true)
+				newBody = Body:CreateCircle(pegRadius, Vector2D.new(startX+(spreadSize * j + (spreadSize/2) ),startY + (spreadSize * i)), 1.8, 0.55, true)
 				World.AddBody(newBody)
 			end
 
@@ -63,8 +66,8 @@ function love.draw()
 	for i=1, #World.activeBodyList do
 	   body = World:GetBody(i)
 	   if body.isStatic then
-		love.graphics.setColor(0, 1, 1)
-			love.graphics.circle("fill", body.position.x, body.position.y, body.radius)
+		love.graphics.setColor(1, 1, 1)
+			love.graphics.circle("line", body.position.x, body.position.y, body.radius)
 		else
 			love.graphics.setColor(1, 1, 0)
 			love.graphics.circle("fill", body.position.x, body.position.y, body.radius)
@@ -74,10 +77,11 @@ end
 
 
 function love.mousepressed(x, y, btn, touch)
+	local offset = 30
 	if btn == 1 then
-		if x > 30 and x < 300 then
-			newBody = Body:CreateCircle(10, Vector2D.new(math.random(30,300),0), 0.8, 0.4, false)
+		for i = 1, 10 do
+			newBody = Body:CreateCircle(10, Vector2D.new(math.random(offset, love.graphics.getWidth() - offset),0), 0.8, 0.4, false)
 			World.AddBody(newBody)		
-		end	
+		end
 	end
 end

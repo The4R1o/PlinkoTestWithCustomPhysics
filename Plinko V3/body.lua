@@ -28,40 +28,34 @@ function Body:CreateCircle(_radius, _position, _density, _restitution, _isStatic
 
     local _area = _radius * _radius * math.pi
     if _area > World.maxBodySize then
-        debug.error("Area is to big!")
         return nil
     end
     if _area < World.minBodySize then
-        debug.error("Area is too small!")
         return nil
     end
 
     if _density < World.minDensity then
-        debug.error("Density is to small!")
         return nil
     end
 
     if _density > World.maxDensity then
-        debug.error("Density is to big!")
         return nil
     end
-    
-    local _body = Body.new(_position, _radius, _isStatic,_density, _restitution)
 
+    local _body = Body.new(_position, _radius, _isStatic, _density, _restitution)
+
+    -- set mass/inverse mass on the new instance (not on the class table)
     _body.mass = _area * _density
-
     if not _isStatic then
-        self.inversMass = 1 / self.mass
-
+        _body.inversMass = 1 / _body.mass
     else
-        self.inversMass = 0
+        _body.inversMass = 0
     end
-
 
     return _body
 end
 
-function Body:Move( _amount )
+function Body:Move( _amount)
     self.position = self.position + _amount
 end
 
@@ -91,7 +85,6 @@ function Body:Step( _time, _gravity)            -- Calculating body position and
     self.linearVelocity = self.linearVelocity + _gravity * _time
 
     self.position = self.position + self.linearVelocity  * _time
-
 end
 
 ----------------------------------------
