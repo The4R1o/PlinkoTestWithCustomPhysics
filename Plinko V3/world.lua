@@ -1,4 +1,5 @@
 require("collisions")
+require("spatial_grid")
 ----------------------------------------
 -- Define the class attributes
 ----------------------------------------
@@ -10,9 +11,8 @@ World = {
 
     minDensity = 0.5,
     maxDensity = 21.4,
-
-    gravity = Vector2D.new(0,3),
-
+    gravity = Vector2D.new(0, 981),
+    spatialGrid = SpatialGrid.new(1000, 1000, 12),
     activeBodyList = {},
 }
 
@@ -29,70 +29,106 @@ function  World.RemoveBody(_index)                  -- Removing the body from th
 end
   
 function World:GetBody(_index)                      -- Adding the body to  the list of all physics bodies       
-    if _index < 0 or _index > #World.activeBodyList then 
+    if _index < 1 or _index > #World.activeBodyList then 
         return nil
     end
     
     return World.activeBodyList[_index]
 end
   
-
 function World.ResolveCollision(_bodyA, _bodyB, _normal, _depth) -- Resolving the collisions between 2 bodies 
-    
+    -- relative velocity
     local _relativeVelocity = _bodyB.linearVelocity - _bodyA.linearVelocity
 
-    --Objects are already moving apart so we don't need to resolve collisons any further
+    -- if separating, no impulse
     if VectorMath.Dot(_relativeVelocity, _normal) > 0 then
         return
     end
-    --[[ This formula was taken from the article  "http://www.chrishecker.com/Rigid_Body_Dynamics "]]
-    local e = math.min(_bodyA.restitution, _bodyB.restitution)
 
+    local invMassA = _bodyA.inversMass or 0
+    local invMassB = _bodyB.inversMass or 0
+    local invMassSum = invMassA + invMassB
+
+    -- positional correction to prevent sinking (mass weighted)
+    local percent = 0.8      -- usually 20-80%
+    local slop = 0.01        -- penetration allowance
+    local correctionDepth = math.max(_depth - slop, 0)
+    if correctionDepth > 0 and invMassSum > 0 then
+        local correction = _normal * (correctionDepth / invMassSum * percent)
+        -- move bodies by inverse-mass fraction
+        if not _bodyA.isStatic then
+            _bodyA:Move(correction * (-invMassA))
+        end
+        if not _bodyB.isStatic then
+            _bodyB:Move(correction * invMassB)
+        end
+    end
+
+    -- impulse resolution
+    local e = math.min(_bodyA.restitution or 0, _bodyB.restitution or 0)
     local j = - (1 + e) * VectorMath.Dot(_relativeVelocity, _normal)
-    j = j / (_bodyA.inversMass + _bodyB.inversMass)
-    
-    local impulse = _normal * j 
-    
-    _bodyA.linearVelocity = _bodyA.linearVelocity - impulse * _bodyA.inversMass
-    _bodyB.linearVelocity = _bodyB.linearVelocity + impulse * _bodyB.inversMass
+
+    if invMassSum == 0 then
+        return
+    end
+
+    j = j / invMassSum
+    local impulse = _normal * j
+
+    if not _bodyA.isStatic then
+        _bodyA.linearVelocity = _bodyA.linearVelocity - impulse * invMassA
+    end
+    if not _bodyB.isStatic then
+        _bodyB.linearVelocity = _bodyB.linearVelocity + impulse * invMassB
+    end
 end
-  
-  -- Iterations:
-  -- How many sub checks should there be withing on dt call, reduces the performances increases precision of collisions  
+
 function World.Step(stepTime, iterations)
 
-    for it = 0, iterations do
+    if iterations <= 0 then iterations = 1 end
+    local subStep = stepTime / iterations
 
+    for it = 1, iterations do
         -- Physics Step --
         for i = 1, #World.activeBodyList do
-        World.activeBodyList[i]:Step(stepTime, World.gravity)
+            World.activeBodyList[i]:Step(subStep, World.gravity)
         end
 
-        -- Collision Step, Naive or Broute Force approach --                                       
-        for i = 1, #World.activeBodyList - 1 do
+        -- -- Collision Step, Naive or Brute Force approach --                                       
+        -- for i = 1, #World.activeBodyList - 1 do
 
+        --     local bodyA = World.activeBodyList[i]
+
+        --     for j= i + 1, #World.activeBodyList do
+
+        --         local bodyB = World.activeBodyList[j]
+
+        --         if not  (bodyA.isStatic and bodyB.isStatic) then
+        --             collBool, normal, depth = Collisions.IntersectCircles(bodyA.position, bodyA.radius, bodyB.position, bodyB.radius)
+
+        --             if collBool then
+        --                 World.ResolveCollision(bodyA, bodyB, normal, depth)
+        --             end
+        --         end
+        --     end
+        -- end
+
+        World.spatialGrid:Clear()
+        for i = 1, #World.activeBodyList do
+            World.spatialGrid:Insert(World.activeBodyList[i])
+        end
+
+        for i = 1, #World.activeBodyList do
             local bodyA = World.activeBodyList[i]
-
-            for j= i + 1, #World.activeBodyList do
-
-                local bodyB = World.activeBodyList[j]
-
-
-                collBool, normal, depth = Collisions.IntersectCircles(bodyA.position, bodyA.radius, bodyB.position, bodyB.radius)
-
-                if collBool then
-                    if bodyA.isStatic then
-                        bodyB:Move(normal * depth)
-                    elseif bodyB.isStatic then
-                        bodyA:Move(normal * depth *-1)  
-                    else               
-                        bodyA:Move(normal * depth * -0.5) 
-                        bodyB:Move(normal * depth * 0.5)
+            local nearby = World.spatialGrid:GetNearby(bodyA)
+            
+            for _, bodyB in ipairs(nearby) do
+                if bodyA ~= bodyB then
+                    collBool, normal, depth = Collisions.IntersectCircles(bodyA.position, bodyA.radius, bodyB.position, bodyB.radius)
+                    if collBool then
+                        World.ResolveCollision(bodyA, bodyB, normal, depth)
                     end
-    
-                    World.ResolveCollision(bodyA, bodyB, normal, depth)
                 end
-                
             end
         end
     end

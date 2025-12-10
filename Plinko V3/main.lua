@@ -54,6 +54,7 @@ function love.draw()
 -- FPS Display
 ----------------------------------------
 	love.graphics.print("Current FPS: "..tostring(love.timer.getFPS( )), 10, 10)
+	love.graphics.print("Current Alive: "..#World.activeBodyList, 10, 30)
 
 ----------------------------------------
 -- Drawing pegs and balls to the screen
@@ -75,7 +76,7 @@ end
 function love.mousepressed(x, y, btn, touch)
 	if btn == 1 then
 		if x > 30 and x < 300 then
-			newBody = Body:CreateCircle(10, Vector2D.new(x,0), 2, 0.6, false)
+			newBody = Body:CreateCircle(10, Vector2D.new(math.random(30,300),0), 0.8, 0.4, false)
 			World.AddBody(newBody)		
 		end	
 	end

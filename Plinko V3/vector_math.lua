@@ -21,6 +21,9 @@ end
 
 function VectorMath.Normalize(vec)
     local len = VectorMath.Length(vec)
+    if len == 0 or len ~= len then -- guard NaN
+        return Vector2D.new(0,0)
+    end
     return Vector2D.new(vec.x / len, vec.y / len)
 end
 

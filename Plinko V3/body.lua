@@ -45,8 +45,10 @@ function Body:CreateCircle(_radius, _position, _density, _restitution, _isStatic
         debug.error("Density is to big!")
         return nil
     end
+    
+    local _body = Body.new(_position, _radius, _isStatic,_density, _restitution)
 
-    self.mass = _area * _density
+    _body.mass = _area * _density
 
     if not _isStatic then
         self.inversMass = 1 / self.mass
@@ -55,7 +57,6 @@ function Body:CreateCircle(_radius, _position, _density, _restitution, _isStatic
         self.inversMass = 0
     end
 
-    local _body = Body.new(_position, _radius, _isStatic,_density, _restitution)
 
     return _body
 end
