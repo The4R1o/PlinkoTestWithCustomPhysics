@@ -1,2 +1,2 @@
-Test project back when I first started using Lua in 2022. 
-I wanted to make a simple game of plinko and it kind of went into a direction of me figuring out what physics formulas is make my balls better. :O
+Back when I first started learning Lua in 2022, I tried to make a simple Plinko game. 
+It quickly turned into me experimenting with physics formulas to make the balls behave better. 😄
